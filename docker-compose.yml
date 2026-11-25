@@ -1,0 +1,37 @@
+# Local / single-host deployment: PostgreSQL + JSA application (API + SPA).
+# Usage:  cp .env.example .env  (edit secrets)  →  docker compose up -d --build
+#         docker compose exec app node dist/db/seed.js        # base configuration (first run)
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-jsa}
+      POSTGRES_USER: ${POSTGRES_USER:-jsa}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-jsa} -d ${POSTGRES_DB:-jsa}"]
+      interval: 5s
+      retries: 20
+    ports: ["127.0.0.1:5432:5432"]
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on: { db: { condition: service_healthy } }
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-jsa}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-jsa}
+      SESSION_SECRET: ${SESSION_SECRET:-}   # required; the app refuses to start without a strong value
+      APP_BASE_URL: ${APP_BASE_URL:-http://localhost:4000}
+      CORS_ORIGINS: ${APP_BASE_URL:-http://localhost:4000}
+      COOKIE_SECURE: ${COOKIE_SECURE:-true}
+      TRUST_PROXY: ${TRUST_PROXY:-1}
+      MIGRATE_ON_START: "true"
+    volumes: [storage:/data/storage]
+    ports: ["${APP_PORT:-4000}:4000"]
+
+volumes:
+  pgdata:
+  storage:

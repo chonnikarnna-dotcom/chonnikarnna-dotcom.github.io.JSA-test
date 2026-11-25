@@ -1,0 +1,13 @@
+node_modules/
+dist/
+.env
+backend/storage/
+backend/storage-test/
+e2e/test-results/
+*.tsbuildinfo
+*.dump
+*.log
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
